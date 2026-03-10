@@ -1,0 +1,438 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Живые отправки</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<style>
+body{font-family:Arial;background:#f4f6f8;margin:0;padding:16px;text-align:center;}
+.stats{display:flex;justify-content:center;gap:10px;margin-bottom:10px;}
+.card{background:white;padding:10px 14px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+#map{height:360px;max-width:900px;margin:auto;border-radius:12px;overflow:hidden;}
+.feed{margin-top:16px;max-width:650px;margin-left:auto;margin-right:auto;}
+.order{background:white;padding:12px;margin-bottom:10px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.08);text-align:left;}
+.popup{position:fixed;bottom:16px;left:16px;background:white;padding:10px 14px;border-radius:10px;
+box-shadow:0 6px 18px rgba(0,0,0,0.15);display:none;}
+</style>
+</head>
+<body>
+
+<h2>📦 Живые отправки</h2>
+
+<div class="stats">
+<div class="card">Сегодня отправлено: <span id="todayCount">0</span></div>
+<div class="card">📅 <span id="todayDate"></span></div>
+</div>
+
+<div id="map"></div>
+<div class="feed" id="feed"></div>
+<div class="popup" id="popup"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+var map=L.map('map',{attributionControl:false}).setView([53.7,27.9],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:''}).addTo(map);
+
+var cities=[
+{name:"Полоцк",coords:[54.04602,30.88197]},
+{name:"Лида",coords:[52.47535,27.90572]},
+{name:"Лельчицы",coords:[53.56123,26.78227]},
+{name:"Берёза",coords:[51.6693,23.37497]},
+{name:"Верхнедвинск",coords:[53.36384,30.49412]},
+{name:"Минск",coords:[54.67916,25.68341]},
+{name:"Пружаны",coords:[54.15577,24.0916]},
+{name:"Чаусы",coords:[51.35295,23.34682]},
+{name:"Клецк",coords:[51.24602,31.64797]},
+{name:"Шарковщина",coords:[52.283,27.19453]},
+{name:"Витебск",coords:[53.83815,30.5079]},
+{name:"Светлогорск",coords:[53.9643,26.45329]},
+{name:"Городок",coords:[52.29391,27.55815]},
+{name:"Горки",coords:[55.83253,27.13695]},
+{name:"Столбцы",coords:[55.81094,24.07]},
+{name:"Высокое",coords:[56.16272,31.44148]},
+{name:"Мозырь",coords:[54.91573,31.78708]},
+{name:"Круглое",coords:[53.704,32.48194]},
+{name:"Житковичи",coords:[55.35018,29.60196]},
+{name:"Кричев",coords:[52.6208,32.54248]},
+{name:"Светлогорск",coords:[55.43099,28.00125]},
+{name:"Свислочь",coords:[55.46644,27.7582]},
+{name:"Червень",coords:[55.18702,27.11885]},
+{name:"Калинковичи",coords:[53.03562,31.6625]},
+{name:"Заславль",coords:[54.57243,26.73462]},
+{name:"Ельск",coords:[54.51879,24.14693]},
+{name:"Слуцк",coords:[53.80469,26.91457]},
+{name:"Ветка",coords:[54.86383,27.65241]},
+{name:"Костюковичи",coords:[54.71691,32.63692]},
+{name:"Свислочь",coords:[54.09088,29.37741]},
+{name:"Жодино",coords:[53.71119,32.62614]},
+{name:"Смолевичи",coords:[52.19758,32.02484]},
+{name:"Несвиж",coords:[52.36088,28.08359]},
+{name:"Мосты",coords:[52.96637,31.92462]},
+{name:"Ганцевичи",coords:[53.93998,32.38403]},
+{name:"Минск",coords:[53.11845,31.41241]},
+{name:"Кличев",coords:[53.7625,24.35372]},
+{name:"Заславль",coords:[54.00679,27.23308]},
+{name:"Пинск",coords:[53.60551,26.63794]},
+{name:"Несвиж",coords:[52.1992,27.99579]},
+{name:"Ветка",coords:[55.26676,27.11992]},
+{name:"Минск",coords:[53.89239,29.14785]},
+{name:"Зельва",coords:[52.85569,28.9186]},
+{name:"Пружаны",coords:[54.37686,28.44234]},
+{name:"Щучин",coords:[55.50504,30.84486]},
+{name:"Новогрудок",coords:[51.3623,32.25263]},
+{name:"Орша",coords:[51.61617,23.2619]},
+{name:"Брест",coords:[54.97073,25.82761]},
+{name:"Фаниполь",coords:[51.74744,29.16058]},
+{name:"Толочин",coords:[52.65142,24.72446]},
+{name:"Новогрудок",coords:[53.8369,24.73101]},
+{name:"Фаниполь",coords:[54.44101,25.95658]},
+{name:"Россоны",coords:[52.81001,27.69558]},
+{name:"Витебск",coords:[52.76002,26.43042]},
+{name:"Островец",coords:[52.1402,24.15499]},
+{name:"Кировск",coords:[53.75058,25.12818]},
+{name:"Воложин",coords:[53.35828,32.56287]},
+{name:"Столин",coords:[51.28932,24.52068]},
+{name:"Белыничи",coords:[55.99947,27.42298]},
+{name:"Житковичи",coords:[54.59088,28.38361]},
+{name:"Столин",coords:[56.08488,29.21849]},
+{name:"Ушачи",coords:[53.783,25.265]},
+{name:"Иваново",coords:[51.3535,29.64656]},
+{name:"Быхов",coords:[54.49912,27.2351]},
+{name:"Кличев",coords:[52.69303,32.48866]},
+{name:"Барановичи",coords:[52.73193,31.42759]},
+{name:"Костюковичи",coords:[55.78588,25.98943]},
+{name:"Слуцк",coords:[53.28086,25.54787]},
+{name:"Брест",coords:[54.00359,31.35011]},
+{name:"Свислочь",coords:[55.29707,32.43335]},
+{name:"Скидель",coords:[53.50426,31.13076]},
+{name:"Заславль",coords:[54.72012,28.03608]},
+{name:"Поставы",coords:[52.20204,24.06055]},
+{name:"Мосты",coords:[54.57077,27.29962]},
+{name:"Сморгонь",coords:[53.66175,32.19815]},
+{name:"Верхнедвинск",coords:[52.68036,27.94806]},
+{name:"Быхов",coords:[54.26064,27.00255]},
+{name:"Осиповичи",coords:[51.29046,25.04827]},
+{name:"Быхов",coords:[55.2557,28.5644]},
+{name:"Полоцк",coords:[52.89548,25.16639]},
+{name:"Городок",coords:[51.68203,26.77857]},
+{name:"Несвиж",coords:[52.91925,31.65921]},
+{name:"Шарковщина",coords:[53.87165,30.54913]},
+{name:"Копыль",coords:[52.3732,30.13701]},
+{name:"Солигорск",coords:[51.86509,24.71556]},
+{name:"Копыль",coords:[52.26484,30.46343]},
+{name:"Ивье",coords:[53.72944,25.57632]},
+{name:"Мстиславль",coords:[52.90143,25.92479]},
+{name:"Воложин",coords:[55.0977,30.03655]},
+{name:"Ветка",coords:[51.87673,28.44635]},
+{name:"Жлобин",coords:[52.80363,27.04401]},
+{name:"Поставы",coords:[55.53084,30.74473]},
+{name:"Новополоцк",coords:[52.90449,29.0673]},
+{name:"Радошковичи",coords:[55.83083,23.84352]},
+{name:"Несвиж",coords:[52.31857,23.89291]},
+{name:"Фаниполь",coords:[53.02446,25.96686]},
+{name:"Копыль",coords:[55.82534,27.54036]},
+{name:"Марьина Горка",coords:[51.73865,23.54379]},
+{name:"Горки",coords:[51.26191,29.60299]},
+{name:"Борисов",coords:[53.26767,31.11336]},
+{name:"Островец",coords:[51.40012,25.42444]},
+{name:"Свислочь",coords:[53.30507,24.22091]},
+{name:"Жодино",coords:[54.60445,24.64176]},
+{name:"Жлобин",coords:[53.37551,32.45753]},
+{name:"Клецк",coords:[55.74611,25.95203]},
+{name:"Новогрудок",coords:[54.75805,26.15026]},
+{name:"Берёза",coords:[54.46025,23.48432]},
+{name:"Брест",coords:[55.1343,32.07836]},
+{name:"Белыничи",coords:[54.18285,27.46349]},
+{name:"Чаусы",coords:[53.19278,23.72266]},
+{name:"Чаусы",coords:[56.04907,32.50703]},
+{name:"Речица",coords:[52.45031,30.71582]},
+{name:"Заславль",coords:[56.09976,28.36626]},
+{name:"Ушачи",coords:[53.5446,26.55152]},
+{name:"Щучин",coords:[53.90801,26.08101]},
+{name:"Глубокое",coords:[53.00232,31.05378]},
+{name:"Борисов",coords:[56.11688,27.44465]},
+{name:"Иваново",coords:[54.07178,26.38717]},
+{name:"Пружаны",coords:[53.15239,26.07581]},
+{name:"Быхов",coords:[52.13406,30.7895]},
+{name:"Дятлово",coords:[55.6675,26.03725]},
+{name:"Климовичи",coords:[51.70474,29.0305]},
+{name:"Ивье",coords:[51.66022,25.23551]},
+{name:"Глубокое",coords:[53.20887,25.70022]},
+{name:"Орша",coords:[54.84585,23.30869]},
+{name:"Брест",coords:[52.65411,30.78419]},
+{name:"Светлогорск",coords:[53.54417,31.43342]},
+{name:"Молодечно",coords:[53.70715,30.81134]},
+{name:"Орша",coords:[53.74635,29.5529]},
+{name:"Калинковичи",coords:[55.08104,32.65349]},
+{name:"Чаусы",coords:[52.72811,29.98044]},
+{name:"Воложин",coords:[52.66745,31.76946]},
+{name:"Кобрин",coords:[53.92746,30.1095]},
+{name:"Заславль",coords:[52.78034,31.85996]},
+{name:"Городок",coords:[55.73577,31.25497]},
+{name:"Червень",coords:[56.13468,25.09271]},
+{name:"Кричев",coords:[53.36319,24.6316]},
+{name:"Круглое",coords:[55.51049,25.49878]},
+{name:"Заславль",coords:[51.52207,32.44484]},
+{name:"Наровля",coords:[53.94635,28.35136]},
+{name:"Копыль",coords:[53.46655,26.93839]},
+{name:"Мстиславль",coords:[52.05759,27.8121]},
+{name:"Островец",coords:[54.43219,27.14183]},
+{name:"Мосты",coords:[51.29455,29.80952]},
+{name:"Дятлово",coords:[51.89142,24.31375]},
+{name:"Дзержинск",coords:[56.11609,25.78607]},
+{name:"Скидель",coords:[53.20541,29.04072]},
+{name:"Пружаны",coords:[53.62998,24.82251]},
+{name:"Чаусы",coords:[53.7045,29.39374]},
+{name:"Ельск",coords:[55.85054,29.29938]},
+{name:"Столин",coords:[52.39187,27.9022]},
+{name:"Чечерск",coords:[55.9827,30.01461]},
+{name:"Мстиславль",coords:[54.00204,31.89731]},
+{name:"Иваново",coords:[52.57613,29.37023]},
+{name:"Барановичи",coords:[55.80802,30.50298]},
+{name:"Дрогичин",coords:[55.58712,24.64684]},
+{name:"Смолевичи",coords:[55.1624,25.07729]},
+{name:"Кричев",coords:[54.66278,31.33521]},
+{name:"Браслав",coords:[52.02589,29.90238]},
+{name:"Буда-Кошелёво",coords:[54.17289,31.40589]},
+{name:"Воложин",coords:[56.00039,28.64096]},
+{name:"Калинковичи",coords:[51.9789,27.2395]},
+{name:"Скидель",coords:[54.79799,30.68801]},
+{name:"Светлогорск",coords:[54.60818,30.05639]},
+{name:"Толочин",coords:[53.11988,31.30101]},
+{name:"Клецк",coords:[54.84948,23.49487]},
+{name:"Борисов",coords:[55.23972,29.19595]},
+{name:"Фаниполь",coords:[54.88454,23.91208]},
+{name:"Полоцк",coords:[56.04614,29.08396]},
+{name:"Ганцевичи",coords:[54.63315,23.89548]},
+{name:"Лунинец",coords:[56.05604,26.80883]},
+{name:"Наровля",coords:[53.1862,31.92782]},
+{name:"Ельск",coords:[51.83165,31.91618]},
+{name:"Ивацевичи",coords:[51.79593,28.92659]},
+{name:"Лепель",coords:[55.74648,29.50694]},
+{name:"Марьина Горка",coords:[52.44108,30.3709]},
+{name:"Минск",coords:[55.99902,28.22512]},
+{name:"Дятлово",coords:[51.30517,29.18701]},
+{name:"Воложин",coords:[52.4112,25.62585]},
+{name:"Калинковичи",coords:[52.62391,28.36069]}
+];
+
+var names=[
+"Алексей",
+"Андрей",
+"Игорь",
+"Максим",
+"Дмитрий",
+"Сергей",
+"Олег",
+"Павел",
+"Илья",
+"Влад",
+"Никита",
+"Евгений",
+"Артём",
+"Роман",
+"Кирилл",
+"Денис",
+"Виталий",
+"Виктор",
+"Антон",
+"Юрий",
+"Михаил",
+"Глеб",
+"Степан",
+"Тимофей",
+"Руслан",
+"Константин",
+"Ярослав",
+"Вадим",
+"Григорий",
+"Анатолий",
+"Егор",
+"Пётр",
+"Леонид",
+"Валерий",
+"Борис",
+"Геннадий",
+"Станислав",
+"Фёдор",
+"Николай",
+"Аркадий",
+"Вячеслав",
+"Даниил",
+"Матвей",
+"Тарас",
+"Савелий",
+"Артур",
+"Марат",
+"Семен",
+"Тихон",
+"Платон",
+"Родион",
+"Игнат",
+"Лука",
+"Макар",
+"Ян",
+"Ростислав",
+"Святослав",
+"Эдуард",
+"Лев",
+"Адам",
+"Анна",
+"Мария",
+"Екатерина",
+"Анастасия",
+"Ольга",
+"Наталья",
+"Дарья",
+"Виктория",
+"Полина",
+"Ксения",
+"Елена",
+"Ирина",
+"Татьяна",
+"Юлия",
+"Алёна",
+"Светлана",
+"Людмила",
+"Марина",
+"Вероника",
+"Карина",
+"Валерия",
+"Алина",
+"София",
+"Ева",
+"Кристина",
+"Нина",
+"Лилия",
+"Оксана",
+"Надежда",
+"Зоя",
+"Диана",
+"Элина",
+"Агата",
+"Милана",
+"Таисия",
+"Ульяна",
+"Вера",
+"Лада",
+"Яна",
+"Арина",
+"Есения",
+"Аделина",
+"Кира",
+"Леся",
+"Лидия",
+"Римма",
+"Инна",
+"Эмма",
+"Регина",
+"Снежана",
+"Галина",
+"Тамара",
+"Василиса",
+"Майя",
+"Александра",
+"Злата",
+"Дарина",
+"Валентина",
+"Серафима",
+"Агния"
+];
+
+var products=[
+"iPhone 13","iPhone 13 Pro","iPhone 13 Pro Max",
+"iPhone 14","iPhone 14 Pro","iPhone 14 Pro Max",
+"iPhone 15","iPhone 15 Pro","iPhone 15 Pro Max",
+"iPhone 16 Pro","iPhone 16 Pro Max","iPhone 17 Pro Max",
+"MacBook Air","MacBook Pro","iPad Air","iPad Pro"
+];
+
+function getPolandTime(){
+const now=new Date();
+return new Date(now.toLocaleString("en-US",{timeZone:"Europe/Warsaw"}));
+}
+
+function seededRandom(seed){
+return function(){
+seed|=0;seed=seed+0x6D2B79F5|0;
+var t=Math.imul(seed^seed>>>15,1|seed);
+t=t+Math.imul(t^t>>>7,61|t)^t;
+return((t^t>>>14)>>>0)/4294967296;
+}
+}
+
+function generateSchedule(){
+const d=getPolandTime();
+const seed=parseInt(d.getFullYear()+""+(d.getMonth()+1)+""+d.getDate());
+const rand=seededRandom(seed);
+
+let count=Math.floor(rand()*4)+5;
+let current=11*60;
+let schedule=[];
+
+for(let i=0;i<count;i++){
+current+=Math.floor(rand()*60)+60;
+if(current>17*60+30)break;
+
+let city=cities[Math.floor(rand()*cities.length)];
+let name=names[Math.floor(rand()*names.length)];
+let product=products[Math.floor(rand()*products.length)];
+
+schedule.push({time:current,city:city,name:name,product:product});
+}
+
+return schedule;
+}
+
+var shown=0;
+
+function render(){
+document.getElementById("feed").innerHTML="";
+map.eachLayer(function(l){if(l instanceof L.Marker) map.removeLayer(l);});
+
+const now=getPolandTime();
+const nowMin=now.getHours()*60+now.getMinutes();
+
+const schedule=generateSchedule();
+let visible=[];
+
+schedule.forEach(o=>{
+if(o.time<=nowMin){
+visible.push(o);
+L.marker(o.city.coords).addTo(map);
+
+let div=document.createElement("div");
+div.className="order";
+div.innerHTML="<b>📦 "+o.product+"</b><br>👤 "+o.name+" — "+o.city.name+"<br>🚚 Оформлено на сегодняшнюю отправку";
+document.getElementById("feed").appendChild(div);
+}
+});
+
+document.getElementById("todayCount").innerText=visible.length;
+
+if(shown<visible.length){
+let o=visible[shown];
+shown++;
+var popup=document.getElementById("popup");
+popup.innerHTML="🟢 "+o.name+" из "+o.city.name+" оформил "+o.product;
+popup.style.display="block";
+setTimeout(()=>popup.style.display="none",5000);
+}
+}
+
+function showDate(){
+const d=getPolandTime();
+document.getElementById("todayDate").innerText=d.toLocaleDateString("ru-RU");
+}
+
+showDate();
+render();
+setInterval(render,300000);
+
+</script>
+</body>
+</html>
