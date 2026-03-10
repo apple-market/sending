@@ -1,0 +1,246 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Живые отправки</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+body{
+font-family:Arial, sans-serif;
+background:#f4f6f8;
+margin:0;
+padding:16px;
+text-align:center;
+}
+
+h1{margin:6px 0;}
+.subtitle{opacity:0.6;margin-bottom:10px;}
+
+.stats{
+display:flex;
+justify-content:center;
+gap:10px;
+flex-wrap:wrap;
+margin-bottom:10px;
+}
+
+.card{
+background:white;
+padding:10px 14px;
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+font-weight:600;
+font-size:14px;
+}
+
+#map{
+height:360px;
+max-width:900px;
+margin:auto;
+border-radius:12px;
+overflow:hidden;
+}
+
+.feed{
+margin-top:16px;
+max-width:650px;
+margin-left:auto;
+margin-right:auto;
+}
+
+.order{
+background:white;
+padding:12px;
+margin-bottom:10px;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.08);
+text-align:left;
+font-size:14px;
+line-height:1.5;
+}
+
+.popup{
+position:fixed;
+bottom:16px;
+left:16px;
+background:white;
+padding:10px 14px;
+border-radius:10px;
+box-shadow:0 6px 18px rgba(0,0,0,0.15);
+font-size:13px;
+display:none;
+}
+
+.online{font-weight:600;margin-bottom:8px;}
+</style>
+</head>
+
+<body>
+
+<h1>📦 Живые отправки</h1>
+<div class="subtitle">Сегодняшние оформленные заказы</div>
+
+<div class="stats">
+<div class="card">Сегодня отправлено: <span id="todayCount">0</span></div>
+<div class="card">Дата: <span id="todayDate"></span></div>
+</div>
+
+<div class="online" id="onlineUsers">👀 Сейчас на сайте: 12 человек</div>
+
+<div id="map"></div>
+
+<div class="feed" id="feed"></div>
+
+<div class="popup" id="popup"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+var map = L.map('map',{attributionControl:false}).setView([53.7098,27.9534],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:''}).addTo(map);
+
+var cities=[
+{name:"Минск",coords:[53.9006,27.5590]},
+{name:"Брест",coords:[52.0976,23.7341]},
+{name:"Гомель",coords:[52.4345,30.9754]},
+{name:"Витебск",coords:[55.1904,30.2049]},
+{name:"Гродно",coords:[53.6694,23.8131]},
+{name:"Могилёв",coords:[53.8945,30.3304]},
+{name:"Барановичи",coords:[53.1327,26.0139]},
+{name:"Пинск",coords:[52.1229,26.0951]},
+{name:"Лида",coords:[53.8875,25.2997]},
+{name:"Орша",coords:[54.5081,30.4172]},
+{name:"Солигорск",coords:[52.7876,27.5415]},
+{name:"Борисов",coords:[54.2279,28.5050]},
+{name:"Молодечно",coords:[54.3102,26.8516]},
+{name:"Жлобин",coords:[52.8926,30.0240]},
+{name:"Речица",coords:[52.3617,30.3916]},
+{name:"Мозырь",coords:[52.0495,29.2456]}
+];
+
+var products=[
+"iPhone 13","iPhone 13 Pro","iPhone 13 Pro Max",
+"iPhone 14","iPhone 14 Pro","iPhone 14 Pro Max",
+"iPhone 15","iPhone 15 Pro","iPhone 15 Pro Max",
+"iPhone 16 Pro","iPhone 16 Pro Max","iPhone 17 Pro Max",
+"MacBook Air","MacBook Pro","iPad Air","iPad Pro"
+];
+
+var names=["Алексей","Андрей","Игорь","Максим","Дмитрий","Сергей","Олег","Павел","Илья","Влад","Антон"];
+
+var feed=document.getElementById("feed");
+
+function getPolandDate(){
+
+const now=new Date();
+
+return new Date(now.toLocaleString("en-US",{timeZone:"Europe/Warsaw"}));
+
+}
+
+function seedRandom(seed){
+
+return function(){
+seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+
+}
+
+function generateOrders(){
+
+const d=getPolandDate();
+
+const seed=parseInt(d.getFullYear()+""+(d.getMonth()+1)+""+d.getDate());
+
+const rand=seedRandom(seed);
+
+const count=Math.floor(rand()*4)+5;
+
+let orders=[];
+
+for(let i=0;i<count;i++){
+
+let city=cities[Math.floor(rand()*cities.length)];
+let product=products[Math.floor(rand()*products.length)];
+
+orders.push({city:city,product:product});
+
+}
+
+return orders;
+
+}
+
+function renderOrders(){
+
+let orders=generateOrders();
+
+orders.forEach(o=>{
+
+L.marker(o.city.coords).addTo(map);
+
+let div=document.createElement("div");
+div.className="order";
+
+div.innerHTML="<b>📦 "+o.product+"</b><br>📍 "+o.city.name+"<br>🚚 Только что оформлено на отправку<br>📅 Сегодня";
+
+feed.appendChild(div);
+
+});
+
+document.getElementById("todayCount").innerText=orders.length;
+
+}
+
+function updateUsers(){
+
+let users=Math.floor(Math.random()*14)+8;
+
+document.getElementById("onlineUsers").innerText="👀 Сейчас на сайте: "+users+" человек";
+
+}
+
+function showPopup(){
+
+let name=names[Math.floor(Math.random()*names.length)];
+let product=products[Math.floor(Math.random()*products.length)];
+let city=cities[Math.floor(Math.random()*cities.length)].name;
+
+var popup=document.getElementById("popup");
+
+popup.innerHTML="🟢 "+name+" из "+city+" купил "+product;
+
+popup.style.display="block";
+
+setTimeout(function(){popup.style.display="none";},5000);
+
+}
+
+function showDate(){
+
+let d=getPolandDate();
+
+document.getElementById("todayDate").innerText=d.toLocaleDateString("ru-RU");
+
+}
+
+showDate();
+renderOrders();
+
+updateUsers();
+setInterval(updateUsers,12000);
+
+setInterval(showPopup,20000);
+
+</script>
+
+</body>
+</html>
