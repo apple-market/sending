@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Живые отправки</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+body{
+font-family:Arial, sans-serif;
+background:#f4f6f8;
+margin:0;
+padding:16px;
+text-align:center;
+}
+
+h1{margin:6px 0;}
+.subtitle{opacity:0.6;margin-bottom:12px;}
+
+.stats{
+display:flex;
+justify-content:center;
+gap:10px;
+flex-wrap:wrap;
+margin-bottom:12px;
+}
+
+.card{
+background:white;
+padding:10px 14px;
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+font-weight:600;
+font-size:14px;
+}
+
+#map{
+height:380px;
+max-width:950px;
+margin:auto;
+border-radius:12px;
+overflow:hidden;
+}
+
+.feed{
+margin-top:16px;
+max-width:650px;
+margin-left:auto;
+margin-right:auto;
+}
+
+.order{
+background:white;
+padding:12px;
+margin-bottom:10px;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.08);
+text-align:left;
+font-size:14px;
+line-height:1.5;
+}
+
+.popup{
+position:fixed;
+bottom:16px;
+left:16px;
+background:white;
+padding:10px 14px;
+border-radius:10px;
+box-shadow:0 6px 18px rgba(0,0,0,0.15);
+font-size:13px;
+display:none;
+}
+
+.online{font-weight:600;margin-bottom:10px;}
+</style>
+</head>
+
+<body>
+
+<h1>📦 Живые отправки</h1>
+<div class="subtitle">Последние оформленные заказы</div>
+
+<div class="stats">
+<div class="card">Сегодня: 32</div>
+<div class="card">За месяц: 1048</div>
+<div class="card">Клиентов: 5631</div>
+</div>
+
+<div class="online" id="onlineUsers">👀 Сейчас на сайте: 12 человек</div>
+
+<div id="map"></div>
+
+<div class="feed" id="feed"></div>
+
+<div class="popup" id="popup"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+var map = L.map('map',{attributionControl:false}).setView([53.7098,27.9534],6);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:''}).addTo(map);
+
+var cities=[
+{name:"Минск",coords:[53.9006,27.5590]},
+{name:"Брест",coords:[52.0976,23.7341]},
+{name:"Гомель",coords:[52.4345,30.9754]},
+{name:"Витебск",coords:[55.1904,30.2049]},
+{name:"Гродно",coords:[53.6694,23.8131]},
+{name:"Могилёв",coords:[53.8945,30.3304]},
+{name:"Барановичи",coords:[53.1327,26.0139]},
+{name:"Пинск",coords:[52.1229,26.0951]},
+{name:"Лида",coords:[53.8875,25.2997]},
+{name:"Орша",coords:[54.5081,30.4172]},
+{name:"Солигорск",coords:[52.7876,27.5415]},
+{name:"Борисов",coords:[54.2279,28.5050]},
+{name:"Молодечно",coords:[54.3102,26.8516]},
+{name:"Жлобин",coords:[52.8926,30.0240]},
+{name:"Речица",coords:[52.3617,30.3916]},
+{name:"Мозырь",coords:[52.0495,29.2456]}
+];
+
+var products=[
+"iPhone 13","iPhone 13 Pro","iPhone 13 Pro Max",
+"iPhone 14","iPhone 14 Pro","iPhone 14 Pro Max",
+"iPhone 15","iPhone 15 Pro","iPhone 15 Pro Max",
+"iPhone 16 Pro","iPhone 16 Pro Max","iPhone 17 Pro Max",
+"MacBook Air","MacBook Pro","iPad Air","iPad Pro"
+];
+
+var names=["Алексей","Андрей","Игорь","Максим","Дмитрий","Сергей","Олег","Павел","Илья","Влад","Антон"];
+
+function addOrder(){
+
+var city=cities[Math.floor(Math.random()*cities.length)];
+var product=products[Math.floor(Math.random()*products.length)];
+var name=names[Math.floor(Math.random()*names.length)];
+
+L.marker(city.coords).addTo(map);
+
+var feed=document.getElementById("feed");
+
+var div=document.createElement("div");
+div.className="order";
+
+var now=new Date().toLocaleTimeString("ru-RU",{hour:'2-digit',minute:'2-digit'});
+
+div.innerHTML="<b>📦 "+product+"</b><br>📍 "+city.name+"<br>🚚 Только что оформлено на отправку<br>🕒 "+now;
+
+feed.prepend(div);
+
+if(feed.children.length>12){feed.removeChild(feed.lastChild);}
+
+showPopup(name,product,city.name);
+
+}
+
+function showPopup(name,product,city){
+
+var popup=document.getElementById("popup");
+
+popup.innerHTML="🟢 "+name+" из "+city+" купил "+product;
+popup.style.display="block";
+
+setTimeout(function(){popup.style.display="none";},5000);
+
+}
+
+function updateUsers(){
+
+let users=Math.floor(Math.random()*14)+8;
+document.getElementById("onlineUsers").innerText="👀 Сейчас на сайте: "+users+" человек";
+
+}
+
+function scheduleOrders(){
+
+function check(){
+
+const now=new Date();
+
+const poland=new Date(now.toLocaleString("en-US",{timeZone:"Europe/Warsaw"}));
+
+let minutes=poland.getHours()*60+poland.getMinutes();
+
+let start=11*60;
+let end=17*60+30;
+
+if(minutes>=start && minutes<=end){
+
+addOrder();
+
+let next=(Math.floor(Math.random()*60)+60)*60000;
+
+setTimeout(check,next);
+
+}else{
+
+setTimeout(check,300000);
+
+}
+
+}
+
+check();
+
+}
+
+updateUsers();
+setInterval(updateUsers,12000);
+scheduleOrders();
+
+</script>
+
+</body>
+</html>
