@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Отправки Apple Market</title>
+<title>🍎 Отправки Apple Market</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <style>
 body{font-family:Arial;background:#f4f6f8;margin:0;padding:16px;text-align:center;}
@@ -18,7 +18,7 @@ box-shadow:0 4px 10px rgba(0,0,0,0.08);text-align:left;}
 </head>
 <body>
 
-<h2>📦 Отправки Apple Market</h2>
+<h2>🍎 Отправки Apple Market</h2>
 
 <div class="stats">
 <div class="card">Сегодня отправлено: <span id="todayCount">0</span></div>
@@ -131,7 +131,7 @@ let current=11*60;
 let schedule=[];
 
 for(let i=0;i<count;i++){
-current+=Math.floor(rand()*60)+60;
+current += Math.floor(rand()*50) + 40;
 if(current>17*60+30)break;
 
 let city=cities[Math.floor(rand()*cities.length)];
